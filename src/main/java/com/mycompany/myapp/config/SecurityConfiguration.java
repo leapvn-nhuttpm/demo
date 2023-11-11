@@ -29,11 +29,8 @@ public class SecurityConfiguration {
 
     private final Environment env;
 
-    private final JHipsterProperties jHipsterProperties;
-
-    public SecurityConfiguration(Environment env, JHipsterProperties jHipsterProperties) {
+    public SecurityConfiguration(Environment env) {
         this.env = env;
-        this.jHipsterProperties = jHipsterProperties;
     }
 
     @Bean
