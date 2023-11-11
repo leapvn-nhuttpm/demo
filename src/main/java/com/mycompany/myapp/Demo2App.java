@@ -1,7 +1,5 @@
 package com.mycompany.myapp;
 
-import com.mycompany.myapp.config.ApplicationProperties;
-import com.mycompany.myapp.config.CRLFLogConverter;
 import jakarta.annotation.PostConstruct;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -20,7 +18,7 @@ import tech.jhipster.config.DefaultProfileUtil;
 import tech.jhipster.config.JHipsterConstants;
 
 @SpringBootApplication
-@EnableConfigurationProperties({ LiquibaseProperties.class, ApplicationProperties.class })
+@EnableConfigurationProperties({ LiquibaseProperties.class })
 public class Demo2App {
 
     private static final Logger log = LoggerFactory.getLogger(Demo2App.class);
@@ -86,7 +84,6 @@ public class Demo2App {
             log.warn("The host name could not be determined, using `localhost` as fallback");
         }
         log.info(
-            CRLFLogConverter.CRLF_SAFE_MARKER,
             """
 
             ----------------------------------------------------------

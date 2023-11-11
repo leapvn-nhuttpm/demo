@@ -28,20 +28,7 @@ public class SecurityJwtConfiguration {
     public JwtDecoder jwtDecoder(SecurityMetersService metersService) {
         NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withSecretKey(getSecretKey()).macAlgorithm(JWT_ALGORITHM).build();
         return token -> {
-            try {
                 return jwtDecoder.decode(token);
-            } catch (Exception e) {
-                if (e.getMessage().contains("Invalid signature")) {
-                    metersService.trackTokenInvalidSignature();
-                } else if (e.getMessage().contains("Jwt expired at")) {
-                    metersService.trackTokenExpired();
-                } else if (e.getMessage().contains("Invalid JWT serialization")) {
-                    metersService.trackTokenMalformed();
-                } else if (e.getMessage().contains("Invalid unsecured/JWS/JWE")) {
-                    metersService.trackTokenMalformed();
-                }
-                throw e;
-            }
         };
     }
 
