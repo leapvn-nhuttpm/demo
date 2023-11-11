@@ -49,13 +49,11 @@ public interface SleepTrackerRepository
   Optional<SleepTracker> findOneWithToOneRelationships(@Param("id") Long id);
 
 
-  @Query(
-    value = "SELECT *\r\n" + //
-            "FROM your_table\r\n" + //
-            "WHERE date >= DATEADD(DAY, -1 * DAYOFWEEK(GETDATE()), GETDATE())\r\n" + //
-            "  AND date <= DATEADD(DAY, 6 - DAYOFWEEK(GETDATE()), GETDATE());\r\n" + //
-            " AND user_id =:userId",
+
+    @Query(
+    value = "SELECT * FROM sleep_tracker WHERE date >= :startDate AND date <= :endDate AND user_id =:userId",
             nativeQuery = true
   )
-  List<SleepTracker> getAllInCurrentWeek(@Param("userId") Long userId);
+  List<SleepTracker> getAllInCurrentWeek(@Param("userId") Long userId, @Param("startDate") String startDate, @Param("endDate") String endDate);
+
 }

@@ -1,19 +1,34 @@
 package com.mycompany.myapp.web.rest;
 
-import com.mycompany.myapp.domain.SleepTracker;
-import com.mycompany.myapp.repository.SleepTrackerRepository;
-import com.mycompany.myapp.service.SleepTrackerService;
-import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.mycompany.myapp.domain.SleepTracker;
+import com.mycompany.myapp.domain.User;
+import com.mycompany.myapp.repository.SleepTrackerRepository;
+import com.mycompany.myapp.repository.UserRepository;
+import com.mycompany.myapp.security.SecurityUtils;
+import com.mycompany.myapp.service.SleepTrackerService;
+import com.mycompany.myapp.web.rest.errors.BadRequestAlertException;
+
 import tech.jhipster.web.util.HeaderUtil;
 import tech.jhipster.web.util.ResponseUtil;
 
@@ -32,6 +47,7 @@ public class SleepTrackerResource {
 
   @Value("${jhipster.clientApp.name}")
   private String applicationName;
+    private final UserRepository userRepository;
 
   private final SleepTrackerService sleepTrackerService;
 
@@ -39,10 +55,12 @@ public class SleepTrackerResource {
 
   public SleepTrackerResource(
     SleepTrackerService sleepTrackerService,
-    SleepTrackerRepository sleepTrackerRepository
+    SleepTrackerRepository sleepTrackerRepository,
+        UserRepository userRepository
   ) {
     this.sleepTrackerService = sleepTrackerService;
     this.sleepTrackerRepository = sleepTrackerRepository;
+        this.userRepository = userRepository;
   }
 
   /**
@@ -64,6 +82,10 @@ public class SleepTrackerResource {
         "idexists"
       );
     }
+    User user = SecurityUtils
+            .getCurrentUserLogin()
+            .flatMap(userRepository::findOneByLogin).orElse(null);
+    sleepTracker.setUser(user);
     SleepTracker result = sleepTrackerService.save(sleepTracker);
     return ResponseEntity
       .created(new URI("/api/sleep-trackers/" + result.getId()))
@@ -73,55 +95,6 @@ public class SleepTrackerResource {
           false,
           ENTITY_NAME,
           result.getId().toString()
-        )
-      )
-      .body(result);
-  }
-
-  /**
-   * {@code PUT  /sleep-trackers/:id} : Updates an existing sleepTracker.
-   *
-   * @param id the id of the sleepTracker to save.
-   * @param sleepTracker the sleepTracker to update.
-   * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the updated sleepTracker,
-   * or with status {@code 400 (Bad Request)} if the sleepTracker is not valid,
-   * or with status {@code 500 (Internal Server Error)} if the sleepTracker couldn't be updated.
-   * @throws URISyntaxException if the Location URI syntax is incorrect.
-   */
-  @PutMapping("/{id}")
-  public ResponseEntity<SleepTracker> updateSleepTracker(
-    @PathVariable(value = "id", required = false) final Long id,
-    @RequestBody SleepTracker sleepTracker
-  ) throws URISyntaxException {
-    log.debug("REST request to update SleepTracker : {}, {}", id, sleepTracker);
-    if (sleepTracker.getId() == null) {
-      throw new BadRequestAlertException("Invalid id", ENTITY_NAME, "idnull");
-    }
-    if (!Objects.equals(id, sleepTracker.getId())) {
-      throw new BadRequestAlertException(
-        "Invalid ID",
-        ENTITY_NAME,
-        "idinvalid"
-      );
-    }
-
-    if (!sleepTrackerRepository.existsById(id)) {
-      throw new BadRequestAlertException(
-        "Entity not found",
-        ENTITY_NAME,
-        "idnotfound"
-      );
-    }
-
-    SleepTracker result = sleepTrackerService.update(sleepTracker);
-    return ResponseEntity
-      .ok()
-      .headers(
-        HeaderUtil.createEntityUpdateAlert(
-          applicationName,
-          false,
-          ENTITY_NAME,
-          sleepTracker.getId().toString()
         )
       )
       .body(result);
@@ -169,6 +142,10 @@ public class SleepTrackerResource {
         "idnotfound"
       );
     }
+    String username = sleepTrackerRepository.findById(id).map(SleepTracker::getUser).map(User::getLogin).orElse(null);
+    if (username != null && !SecurityUtils.getCurrentUserLogin().equals(username)) {
+        return ResponseEntity.status(HttpStatusCode.valueOf(403)).build();
+    }
 
     Optional<SleepTracker> result = sleepTrackerService.partialUpdate(
       sleepTracker
@@ -192,24 +169,8 @@ public class SleepTrackerResource {
    * @return the {@link ResponseEntity} with status {@code 200 (OK)} and the list of sleepTrackers in body.
    */
   @GetMapping("")
-  public List<SleepTracker> getAllSleepTrackers(
-    @RequestParam(required = false, defaultValue = "true") boolean eagerload
-  ) {
-    log.debug("REST request to get all SleepTrackers");
-    return sleepTrackerService.findAll();
-  }
-
-  /**
-   * {@code GET  /sleep-trackers/:id} : get the "id" sleepTracker.
-   *
-   * @param id the id of the sleepTracker to retrieve.
-   * @return the {@link ResponseEntity} with status {@code 200 (OK)} and with body the sleepTracker, or with status {@code 404 (Not Found)}.
-   */
-  @GetMapping("/{id}")
-  public ResponseEntity<SleepTracker> getSleepTracker(@PathVariable Long id) {
-    log.debug("REST request to get SleepTracker : {}", id);
-    Optional<SleepTracker> sleepTracker = sleepTrackerService.findOne(id);
-    return ResponseUtil.wrapOrNotFound(sleepTracker);
+  public List<SleepTracker> getAllSleepTrackers() {
+    return sleepTrackerRepository.findByUserIsCurrentUser();
   }
 
   /**
@@ -220,7 +181,11 @@ public class SleepTrackerResource {
    */
   @DeleteMapping("/{id}")
   public ResponseEntity<Void> deleteSleepTracker(@PathVariable Long id) {
-    log.debug("REST request to delete SleepTracker : {}", id);
+    String username = sleepTrackerRepository.findById(id).map(SleepTracker::getUser).map(User::getLogin).orElse(null);
+    if (username != null && !SecurityUtils.getCurrentUserLogin().equals(username)) {
+        return ResponseEntity.status(HttpStatusCode.valueOf(403)).build();
+    }
+
     sleepTrackerService.delete(id);
     return ResponseEntity
       .noContent()

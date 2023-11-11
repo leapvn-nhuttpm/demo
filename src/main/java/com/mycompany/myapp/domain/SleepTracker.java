@@ -36,7 +36,7 @@ public class SleepTracker implements Serializable {
   @Column(name = "total_sleep_duration")
   private Double totalSleepDuration;
 
-  @ManyToOne(fetch = FetchType.LAZY)
+  @ManyToOne(fetch = FetchType.EAGER)
   private User user;
 
 

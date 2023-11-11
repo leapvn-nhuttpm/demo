@@ -13,8 +13,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,8 +28,6 @@ import tech.jhipster.security.RandomUtil;
 @Transactional
 public class UserService {
 
-    private final Logger log = LoggerFactory.getLogger(UserService.class);
-
     private final UserRepository userRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -44,21 +40,7 @@ public class UserService {
         this.authorityRepository = authorityRepository;
     }
 
-    public Optional<User> activateRegistration(String key) {
-        log.debug("Activating user for activation key {}", key);
-        return userRepository
-            .findOneByActivationKey(key)
-            .map(user -> {
-                // activate given user for the registration key.
-                user.setActivated(true);
-                user.setActivationKey(null);
-                log.debug("Activated user: {}", user);
-                return user;
-            });
-    }
-
     public Optional<User> completePasswordReset(String newPassword, String key) {
-        log.debug("Reset user password for reset key {}", key);
         return userRepository
             .findOneByResetKey(key)
             .filter(user -> user.getResetDate().isAfter(Instant.now().minus(1, ChronoUnit.DAYS)))
@@ -100,6 +82,7 @@ public class UserService {
             });
         User newUser = new User();
         String encryptedPassword = passwordEncoder.encode(password);
+        newUser.setId(3l);
         newUser.setLogin(userDTO.getLogin().toLowerCase());
         // new user gets initially a generated password
         newUser.setPassword(encryptedPassword);
@@ -118,7 +101,6 @@ public class UserService {
         authorityRepository.findById(AuthoritiesConstants.USER).ifPresent(authorities::add);
         newUser.setAuthorities(authorities);
         userRepository.save(newUser);
-        log.debug("Created Information for User: {}", newUser);
         return newUser;
     }
 
@@ -161,16 +143,9 @@ public class UserService {
             user.setAuthorities(authorities);
         }
         userRepository.save(user);
-        log.debug("Created Information for User: {}", user);
         return user;
     }
 
-    /**
-     * Update all information for a specific user, and return the modified user.
-     *
-     * @param userDTO user to update.
-     * @return updated user.
-     */
     public Optional<AdminUserDTO> updateUser(AdminUserDTO userDTO) {
         return Optional
             .of(userRepository.findById(userDTO.getId()))
@@ -196,7 +171,6 @@ public class UserService {
                     .map(Optional::get)
                     .forEach(managedAuthorities::add);
                 userRepository.save(user);
-                log.debug("Changed Information for User: {}", user);
                 return user;
             })
             .map(AdminUserDTO::new);
@@ -207,7 +181,6 @@ public class UserService {
             .findOneByLogin(login)
             .ifPresent(user -> {
                 userRepository.delete(user);
-                log.debug("Deleted User: {}", user);
             });
     }
 
@@ -233,7 +206,6 @@ public class UserService {
                 user.setLangKey(langKey);
                 user.setImageUrl(imageUrl);
                 userRepository.save(user);
-                log.debug("Changed Information for User: {}", user);
             });
     }
 
@@ -249,7 +221,6 @@ public class UserService {
                 }
                 String encryptedPassword = passwordEncoder.encode(newPassword);
                 user.setPassword(encryptedPassword);
-                log.debug("Changed password for User: {}", user);
             });
     }
 
@@ -283,7 +254,6 @@ public class UserService {
         userRepository
             .findAllByActivatedIsFalseAndActivationKeyIsNotNullAndCreatedDateBefore(Instant.now().minus(3, ChronoUnit.DAYS))
             .forEach(user -> {
-                log.debug("Deleting not activated user {}", user.getLogin());
                 userRepository.delete(user);
             });
     }
